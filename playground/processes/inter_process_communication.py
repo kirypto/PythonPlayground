@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from multiprocessing import current_process, Process
-from multiprocessing.connection import Listener, Client
-from threading import get_ident
+from multiprocessing.connection import Listener, Client, Connection
+from threading import get_ident, Thread
 from typing import NoReturn
 
 
@@ -52,15 +52,20 @@ def _server_listener(port: int) -> None:
         print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Listening for connections...")
         conn = listener.accept()
         print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Connection accepted from {listener.last_accepted}")
-        try:
-            while True:
-                msg = conn.recv()
-                print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Connection received '{msg}'")
-        except EOFError:
-            print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Closing connection (EOF).")
-            conn.close()
+        connection_thread = Thread(target=_connection_handler, args=(conn,))
+        connection_thread.start()
     # print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Closing listener.")
     # listener.close()
+
+
+def _connection_handler(conn: Connection) -> None:
+    try:
+        while True:
+            msg = conn.recv()
+            print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Connection received '{msg}'")
+    except EOFError:
+        print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Closing connection (EOF).")
+        conn.close()
 
 
 def _client_main(port: int) -> NoReturn:
