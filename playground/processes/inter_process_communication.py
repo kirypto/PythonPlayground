@@ -1,10 +1,10 @@
 from argparse import ArgumentParser
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
-from multiprocessing import current_process
+from multiprocessing import current_process, Process
 from multiprocessing.connection import Listener, Client
 from threading import get_ident
-from datetime import datetime
 from typing import NoReturn
 
 
@@ -30,22 +30,37 @@ def _parse_arguments() -> _Arguments:
 
 def _server_main(port: int) -> NoReturn:
     print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Running in SERVER mode on port {port}")
+    listener_process = Process(target=_server_listener, args=(port,))
+    try:
+        listener_process.start()
+        print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Listener running, press any key to stop.")
+        input()  # Wait for any key
+    except KeyboardInterrupt:
+        pass
+    finally:
+        print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Stopping listener...")
+        listener_process.terminate()
+        listener_process.join()
+    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Stopped server.")
+    exit()
+
+
+def _server_listener(port: int) -> None:
     address = ('localhost', port)
     listener = Listener(address, authkey=b'secret password')
-    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Listening for connections...")
-    conn = listener.accept()
-    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Connection accepted from {listener.last_accepted}")
     while True:
-        msg = conn.recv()
-        print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Connection received '{msg}'")
-        if msg == 'close':
-            print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Closing connection.")
+        print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Listening for connections...")
+        conn = listener.accept()
+        print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Connection accepted from {listener.last_accepted}")
+        try:
+            while True:
+                msg = conn.recv()
+                print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Connection received '{msg}'")
+        except EOFError:
+            print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Closing connection (EOF).")
             conn.close()
-            break
-    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Closing listener.")
-    listener.close()
-    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Stopping server.")
-    exit()
+    # print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Closing listener.")
+    # listener.close()
 
 
 def _client_main(port: int) -> NoReturn:
