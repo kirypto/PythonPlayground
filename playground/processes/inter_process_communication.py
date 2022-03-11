@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 from dataclasses import dataclass
 from enum import Enum
 from multiprocessing import current_process
+from multiprocessing.connection import Listener, Client
 from threading import get_ident
 from datetime import datetime
 from typing import NoReturn
@@ -29,12 +30,40 @@ def _parse_arguments() -> _Arguments:
 
 def _server_main(port: int) -> NoReturn:
     print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Running in SERVER mode on port {port}")
-    pass
+    address = ('localhost', port)
+    listener = Listener(address, authkey=b'secret password')
+    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Listening for connections...")
+    conn = listener.accept()
+    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Connection accepted from {listener.last_accepted}")
+    while True:
+        msg = conn.recv()
+        print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Connection received '{msg}'")
+        if msg == 'close':
+            print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Closing connection.")
+            conn.close()
+            break
+    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Closing listener.")
+    listener.close()
+    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Stopping server.")
+    exit()
 
 
 def _client_main(port: int) -> NoReturn:
     print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Running in SERVER mode on port {port}")
-    pass
+    address = ('localhost', port)
+    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Connecting to server...")
+    conn = Client(address, authkey=b'secret password')
+    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Connection established.")
+    while True:
+        message = input("Enter to send message (blank to exit): ")
+        if not message:
+            break
+        print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Sending message '{message}'.")
+        conn.send(message)
+    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Closing connection.")
+    conn.close()
+    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Stopping client.")
+    exit()
 
 
 def _main() -> NoReturn:
