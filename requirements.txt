@@ -1,2 +1,1 @@
 openapi3==1.6.5
-requests==2.27.1

@@ -1,7 +1,8 @@
+from json import loads
+from pathlib import Path
 from typing import Dict, Set
 
 from openapi3 import OpenAPI
-from requests import get
 
 
 class APISpecification(OpenAPI):
@@ -17,7 +18,8 @@ class APISpecification(OpenAPI):
 
 
 def _test():
-    api_spec_json = get("https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/petstore-expanded.json").json()
+    api_spec_text = Path(__file__).parent.joinpath("sample_openapi_v3.0.1.json").read_text()
+    api_spec_json = loads(api_spec_text)
 
     api_specification = APISpecification(api_spec_json)
     print(api_specification.get_routes())
