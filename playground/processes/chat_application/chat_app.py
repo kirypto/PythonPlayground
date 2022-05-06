@@ -4,6 +4,7 @@ from datetime import datetime
 from enum import Enum
 from multiprocessing import current_process, Process
 from multiprocessing.connection import Listener, Connection, Client
+from random import shuffle
 from threading import get_ident, Thread
 from typing import NoReturn
 
@@ -53,26 +54,40 @@ def _client_listener(port: int) -> None:
     chat_room_number: int = 0
     while True:
         chat_room_number += 1
-        _print(f"Waiting for player 1...")
+        _print(f"Waiting for chat client 1...")
         p1_conn = listener.accept()
-        _print(f"Player 1 connected from {listener.last_accepted}")
-        _print(f"Waiting for player 2...")
+        _print(f"Chat client 1 connected from {listener.last_accepted}")
+        _print(f"Waiting for chat client 2...")
         p2_conn = listener.accept()
-        _print(f"Player 2 connected from {listener.last_accepted}")
+        _print(f"Chat client 2 connected from {listener.last_accepted}")
         connection_thread = Thread(target=_client_handler, args=(p1_conn, p2_conn, chat_room_number))
         connection_thread.start()
 
 
-def _client_handler(p1_conn: Connection, p2_conn: Connection, chat_room_number: int) -> None:
+def _client_handler(conn_a: Connection, conn_b: Connection, chat_room_number: int) -> None:
+    connections = [conn_a, conn_b]
+    shuffle(connections)
+    p1_conn, p2_conn = connections
     try:
-        p1_conn.send("Enter message: ")
+        # Receive chat client names
+        p1_name = p1_conn.recv()
+        p2_name = p2_conn.recv()
+        _print(f"[Room {chat_room_number}] Chat room spun up between P1 '{p1_name}' and P2 '{p2_name}'")
+        # Send other chat client names
+        p1_conn.send(p2_name)
+        p2_conn.send(p1_name)
+        # Send starting client name
+        p1_conn.send(p1_name)
+        p2_conn.send(p1_name)
+
+        # Start main chat loop
         while True:
             msg = p1_conn.recv()
             _print(f"[Room {chat_room_number}] Forwarding from P1 to P2: '{msg}'")
-            p2_conn.send(f"Player 1: '{msg}'\nEnter reply: ")
+            p2_conn.send(msg)
             msg = p2_conn.recv()
             _print(f"[Room {chat_room_number}] Forwarding from P2 to P1: '{msg}'")
-            p1_conn.send(f"Player 2: '{msg}'\nEnter reply: ")
+            p1_conn.send(msg)
     except (EOFError, ConnectionResetError):
         _print(f"[Room {chat_room_number}] Closing connection (EOF).")
         p1_conn.close()
@@ -80,27 +95,57 @@ def _client_handler(p1_conn: Connection, p2_conn: Connection, chat_room_number: 
 
 
 def _run_chat_client(port) -> NoReturn:
-    _print("Running in SERVER mode on port {port}")
+    print("-" * 50)
+    name = _input_client_name("| ")
     address = ('localhost', port)
-    _print("Connecting to server...")
     conn = Client(address, authkey=b'secret password')
-    _print("Connection established.")
+    print("| Connected to chat server.")
+    print("| Waiting on another chat client...")
+
     try:
+        # Send chat client name
+        conn.send(name)
+        # Receive other client name
+        other_name = conn.recv()
+        print(f"| Connected to '{other_name}'")
+        # Receive starting client name
+        starting_name = conn.recv()
+        print(f"| Chat starts with {starting_name if starting_name != name else 'me'}")
+        print("-" * 50)
+
+        def prepend_names(sender: str, msg: str) -> str:
+            return f"| {sender.rjust(max(len(other_name), 2))}: {msg}"
+
+        if name == starting_name:
+            message = input(prepend_names("Me", ""))
+            conn.send(message)
         while True:
-            prompt = conn.recv()
-            message = input(prompt)
+            message = conn.recv()
+            print(prepend_names(other_name, message))
+            message = input(prepend_names("Me", ""))
             if not message:
                 break
             conn.send(message)
         conn.close()
     except (ConnectionResetError, EOFError):
-        _print("Other player closed the connection")
+        print("| Other client left chat.")
     except KeyboardInterrupt:
         pass
     finally:
-        _print("Closing connection.")
+        print("| Leaving chat.")
         conn.close()
+    print("-" * 50)
     exit()
+
+
+def _input_client_name(message_prefix: str = "") -> str:
+    name = None
+    while name is None:
+        name = input(f"{message_prefix}Enter name (alphanumeric only): ")
+        if not name.isalnum():
+            name = None
+            print(f"{message_prefix}    Error: name must be alpha numeric")
+    return name
 
 
 def _print(msg: str) -> None:
