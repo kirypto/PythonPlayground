@@ -1,0 +1,7 @@
+south
+west
+south
+south
+east
+south
+fin
