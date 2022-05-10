@@ -6,14 +6,6 @@ from typing import List, Optional, Tuple, Set, Dict
 Coord = Tuple[int, int]
 
 
-_DIRECTION_NAME_BY_COORD_DELTA: Dict[Coord, str] = {
-    (1, 0): "south",
-    (-1, 0): "north",
-    (0, 1): "east",
-    (0, -1): "west",
-}
-
-
 @total_ordering
 @dataclass
 class _State:
@@ -34,6 +26,76 @@ class _State:
         if not isinstance(other, _State):
             raise ValueError(f"'other' was not a {_State.__name__}, instead was {type(other).__name__}")
         return self.cost_so_far + self.estimated_remaining < other.cost_so_far + other.estimated_remaining
+
+
+def _main():
+    is_traversable_map, start_position, target = _read_problem_input()
+
+    path = _solve_with_a_star(is_traversable_map, start_position, target)
+
+    _print_problem_output(path)
+
+
+def _solve_with_a_star(is_traversable_map: List[List[bool]], start_position: Coord, target: Coord) -> List[Coord]:
+    initial_state = _State(None, start_position, 0, _estimate_remaining(start_position, target))
+
+    state_min_heap = [initial_state]
+    heapq.heapify(state_min_heap)
+    visited: Set[Coord] = set()
+    finishing_state = None
+
+    while state_min_heap:
+        curr_state = heapq.heappop(state_min_heap)
+        if curr_state.pos == target:
+            finishing_state = curr_state
+            break
+
+        visited.add(curr_state.pos)
+        for successor in _generate_successors(is_traversable_map, curr_state, visited, target):
+            heapq.heappush(state_min_heap, successor)
+
+    if finishing_state is None:
+        raise ValueError("Could not find path")
+
+    path: List[Coord] = []
+    curr_state = finishing_state
+    while curr_state is not None:
+        path.insert(0, curr_state.pos)
+        curr_state = curr_state.precursor
+
+    return path
+
+
+def _print_problem_output(path: List[Coord]) -> None:
+    _direction_name_by_coord_delta: Dict[Coord, str] = {
+        (1, 0): "south",
+        (-1, 0): "north",
+        (0, 1): "east",
+        (0, -1): "west",
+    }
+
+    for index in range(len(path) - 1):
+        curr_pos_row, curr_pos_col = path[index]
+        next_pos_row, next_pos_col = path[index + 1]
+        position_delta = next_pos_row - curr_pos_row, next_pos_col - curr_pos_col
+        print(_direction_name_by_coord_delta[position_delta])
+    print("fin")
+
+
+def _read_problem_input() -> Tuple[List[List[bool]], Coord, Coord]:
+    num_rows = int(input())
+    num_cols = int(input())
+    is_traversable_map: List[List[bool]] = []
+    for _ in range(num_rows):
+        map_line = input()
+        if len(map_line) != num_cols:
+            raise ValueError("Map line did not have expected length")
+        is_traversable_map.append([char == "0" for char in map_line])
+    start_input = input().split()
+    start_position = (int(start_input[0]), int(start_input[1]))
+    target_input = input().split()
+    target = (int(target_input[0]), int(target_input[1]))
+    return is_traversable_map, start_position, target
 
 
 def _estimate_remaining(position: Coord, target: Coord) -> float:
@@ -63,55 +125,6 @@ def _generate_successors(
         _State(state, successor_position, state.cost_so_far + 1, _estimate_remaining(successor_position, target))
         for successor_position in successor_positions
     }
-
-
-def _main():
-    num_rows = int(input())
-    num_cols = int(input())
-    is_traversable_map: List[List[bool]] = []
-    for _ in range(num_rows):
-        map_line = input()
-        if len(map_line) != num_cols:
-            raise ValueError("Map line did not have expected length")
-        is_traversable_map.append([char == "0" for char in map_line])
-
-    start_input = input().split()
-    start_position = (int(start_input[0]), int(start_input[1]))
-    target_input = input().split()
-    target = (int(target_input[0]), int(target_input[1]))
-
-    initial_state = _State(None, start_position, 0, _estimate_remaining(start_position, target))
-
-    state_min_heap = [initial_state]
-    heapq.heapify(state_min_heap)
-    visited: Set[Coord] = set()
-    finishing_state = None
-
-    while state_min_heap:
-        curr_state = heapq.heappop(state_min_heap)
-        if curr_state.pos == target:
-            finishing_state = curr_state
-            break
-
-        visited.add(curr_state.pos)
-        for successor in _generate_successors(is_traversable_map, curr_state, visited, target):
-            heapq.heappush(state_min_heap, successor)
-
-    if finishing_state is None:
-        raise ValueError("Could not find path")
-
-    path = []
-    curr_state = finishing_state
-    while curr_state is not None:
-        path.insert(0, curr_state.pos)
-        curr_state = curr_state.precursor
-    for index in range(len(path) - 1):
-        curr_pos_row, curr_pos_col = path[index]
-        next_pos_row, next_pos_col = path[index + 1]
-        position_delta = next_pos_row - curr_pos_row, next_pos_col - curr_pos_col
-        print(_DIRECTION_NAME_BY_COORD_DELTA[position_delta])
-
-    print("fin")
 
 
 if __name__ == "__main__":
