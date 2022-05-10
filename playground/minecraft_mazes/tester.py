@@ -10,7 +10,7 @@ def _main() -> None:
     args = parser.parse_args()
 
     input_lines = Path(args.input).read_text("utf8")
-    solver = Popen(['python', 'solver.py'], stdout=PIPE, stdin=PIPE, stderr=STDOUT)
+    solver = Popen(['python', 'astar_solver.py'], stdout=PIPE, stdin=PIPE, stderr=STDOUT)
     result = solver.communicate(input=input_lines.encode("utf8"))[0].decode("utf8")
 
     expected_result = Path(args.output).read_text("utf8")
