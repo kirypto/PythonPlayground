@@ -89,7 +89,7 @@ def _read_problem_input() -> Tuple[List[List[bool]], Coord, Coord]:
     for _ in range(num_rows):
         map_line = input()
         if len(map_line) != num_cols:
-            raise ValueError("Map line did not have expected length")
+            raise ValueError(f"Map line did not have expected length. Expected {num_cols}, was {len(map_line)}")
         is_traversable_map.append([char == "0" for char in map_line])
     start_input = input().split()
     start_position = (int(start_input[0]), int(start_input[1]))
