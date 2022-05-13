@@ -1,3 +1,11 @@
+"""
+Example of inter-process communication.
+- Message passing from a client process to a server process on a specified port.
+- Multiple clients can connect to the server simultaneously, as each are handled on a separate thread.
+- Server can be run by invoking `python inter_process_communication.py server`
+- Clients can be run by invoking `python inter_process_communication.py client`
+    - Once connected, client script will receive messages via stdin and forward to the server.
+"""
 from argparse import ArgumentParser
 from dataclasses import dataclass
 from datetime import datetime
@@ -28,67 +36,69 @@ def _parse_arguments() -> _Arguments:
     return _Arguments(_Mode(args.mode), args.port)
 
 
+def _print_prefixed(message: str) -> None:
+    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] {message}")
+
+
 def _server_main(port: int) -> NoReturn:
-    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Running in SERVER mode on port {port}")
+    _print_prefixed(f"Running in SERVER mode on port {port}")
     listener_process = Process(target=_server_listener, args=(port,))
     try:
         listener_process.start()
-        print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Listener running, press any key to stop.")
+        _print_prefixed("Listener running, press any key to stop.")
         input()  # Wait for any key
     except KeyboardInterrupt:
         pass
     finally:
-        print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Stopping listener...")
+        _print_prefixed("Stopping listener...")
         listener_process.terminate()
         listener_process.join()
-    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Stopped server.")
+    _print_prefixed("Stopped server.")
     exit()
 
 
 def _server_listener(port: int) -> None:
-    address = ('localhost', port)
+    address = ("localhost", port)
     listener = Listener(address, authkey=b'secret password')
     while True:
-        print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Listening for connections...")
+        _print_prefixed("Listening for connections...")
         conn = listener.accept()
-        print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Connection accepted from {listener.last_accepted}")
+        _print_prefixed(f"Connection accepted from {listener.last_accepted}")
         connection_thread = Thread(target=_connection_handler, args=(conn,))
         connection_thread.start()
-    # print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Closing listener.")
-    # listener.close()
 
 
 def _connection_handler(conn: Connection) -> None:
     try:
         while True:
             msg = conn.recv()
-            print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Connection received '{msg}'")
+            _print_prefixed(f"Connection received '{msg}'")
     except EOFError:
-        print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Closing connection (EOF).")
+        _print_prefixed("Closing connection (EOF).")
         conn.close()
 
 
 def _client_main(port: int) -> NoReturn:
-    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Running in SERVER mode on port {port}")
+    _print_prefixed(f"Running in SERVER mode on port {port}")
     address = ('localhost', port)
-    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Connecting to server...")
+    _print_prefixed(f"Connecting to server...")
     conn = Client(address, authkey=b'secret password')
-    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Connection established.")
+    _print_prefixed(f"Connection established.")
     while True:
         message = input("Enter to send message (blank to exit): ")
         if not message:
             break
-        print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Sending message '{message}'.")
+        _print_prefixed(f"Sending message '{message}'.")
         conn.send(message)
-    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Closing connection.")
+    _print_prefixed(f"Closing connection.")
     conn.close()
-    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] Stopping client.")
+    _print_prefixed(f"Stopping client.")
     exit()
 
 
 def _main() -> NoReturn:
     arguments = _parse_arguments()
-    print(f"~~> [{current_process().ident}::{get_ident()}@{datetime.utcnow()}] {arguments}")
+    _print_prefixed(f"{arguments}")
     if arguments.mode == _Mode.SERVER:
         _server_main(arguments.port)
     elif arguments.mode == _Mode.CLIENT:
