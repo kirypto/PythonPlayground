@@ -32,3 +32,16 @@ stdout: 75025
 > stdout, _ = Popen(["python", "fibonacci.py"], text=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT).communicate(input="25")
 stdout: 75025
 ```
+
+## Workers with Multithreading
+
+```shell
+python thread_based_workers.py
+```
+
+## Workers with Multiprocessing
+
+
+```shell
+python thread_based_workers.py
+```
