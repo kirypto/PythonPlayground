@@ -68,7 +68,7 @@ def _worker_thread_main(work_queue: Queue[WorkData], answer_queue: Queue[ResultD
                     _print_prefixed(f"Unknown worker thread command '{work}', skipping.")
                     continue
             desired_fibonacci_number = work
-            _print_prefixed(f"Calculating Fibonacci({desired_fibonacci_number})...")
+            _print_prefixed(f"Calculating Fibonacci({desired_fibonacci_number})... ({work_queue.qsize()} still in queue)")
             start = datetime.now()
             result = fibonacci(desired_fibonacci_number)
             delta = datetime.now() - start
@@ -90,7 +90,7 @@ def _result_thread_main(answer_queue: Queue[ResultData]) -> None:
 
 
 def _print_prefixed(message: str) -> None:
-    print(f"~~> [{get_ident()} @ {datetime.utcnow()}] {message}")
+    print(f"{str(get_ident()).rjust(10)} @ {datetime.now().strftime('%H:%M:%S.%f')[:-4]}  ||  {message}")
 
 
 if __name__ == "__main__":

@@ -67,7 +67,7 @@ def _worker_process_main(work_queue: Queue, answer_queue: Queue) -> None:
                     _print_prefixed(f"Unknown worker process command '{work}', skipping.")
                     continue
             desired_fibonacci_number = work
-            _print_prefixed(f"Calculating Fibonacci({desired_fibonacci_number})...")
+            _print_prefixed(f"Calculating Fibonacci({desired_fibonacci_number})... ({work_queue.qsize()} still in queue)")
             start = datetime.now()
             result = fibonacci(desired_fibonacci_number)
             delta = datetime.now() - start
@@ -89,7 +89,7 @@ def _result_process_main(answer_queue: Queue) -> None:
 
 
 def _print_prefixed(message: str) -> None:
-    print(f"~~> [{current_process().ident} @ {datetime.utcnow()}] {message}")
+    print(f"{str(current_process().ident).rjust(10)} @ {datetime.now().strftime('%H:%M:%S.%f')[:-4]}  ||  {message}")
 
 
 if __name__ == "__main__":
