@@ -148,3 +148,18 @@ Set-Item -Path Env:PYTHONPATH -Value ($Env:PYTHONPATH + ";" + ((Get-Item .).pare
 
 python process_based_workers.py
 ```
+
+
+## Chat Application
+
+The [Chat Server and Client Application](chat_application) located in the `chat_application` sub folder demonstrates a
+far more involved version of this type of logic, showing how processes launched in isolation can communicate with one
+another.
+
+
+## Asyncio
+
+A lot of what was created in these scripts recreate the worker pools and functionality provided by the `asyncio`
+module. As such, much of this can be implemented using that instead of manually managing threads or worker pools. There
+are also ways to tie in asyncio with multiprocessing. No examples of that are provided in this project, at least not 
+yet.
