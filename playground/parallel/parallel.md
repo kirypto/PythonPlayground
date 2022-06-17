@@ -122,7 +122,7 @@ Results --> ThreadJoin
 ThreadJoin --> [*]
 ```
 
-The following will run the `thread_based_worker.py` demo. _(the `Set-Item` command at the beginning adds the project
+The following will run the `thread_based_workers.py` demo. _(the `Set-Item` command at the beginning adds the project
 root to the python path so that the following script can be run from this current directory)_
 ```shell
 Set-Item -Path Env:PYTHONPATH -Value ($Env:PYTHONPATH + ";" + ((Get-Item .).parent.parent.FullName) + ";");
@@ -132,7 +132,19 @@ python thread_based_workers.py
 
 ## Workers with Multiprocessing
 
+The `multiprocessing` module provides very similar interface to that of `threads`, but instead creates processes. Thus,
+nearly identical programs can be made, but using subprocesses instead of threads to take advantage of multiple cpus.
+The `multiprocessing` module also provides a `Queue` class which behaves and provided the same interface as that of
+`queue.Queue`. 
 
+To demonstrate this, the `process_based_workers.py` script performs identical functionality to the above
+`thread_based_workers.py`, but using multiple processes instead. Both the behavior and the code itself are nearly
+identical.
+
+The following will run the `process_based_workers.py` demo. _(the `Set-Item` command at the beginning adds the project
+root to the python path so that the following script can be run from this current directory)_
 ```shell
-python thread_based_workers.py
+Set-Item -Path Env:PYTHONPATH -Value ($Env:PYTHONPATH + ";" + ((Get-Item .).parent.parent.FullName) + ";");
+
+python process_based_workers.py
 ```
