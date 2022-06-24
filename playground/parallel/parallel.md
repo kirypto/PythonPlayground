@@ -141,6 +141,27 @@ To demonstrate this, the `process_based_workers.py` script performs identical fu
 `thread_based_workers.py`, but using multiple processes instead. Both the behavior and the code itself are nearly
 identical.
 
+The equivalent of the multi-threaded example above with `multiprocessing` would look like this:
+```python
+from multiprocessing import Process, Queue
+
+def worker(queue: Queue[int]) -> None:
+    while True:
+        num = queue.get()
+        if num < 0:
+            break
+        print(num)
+
+work_queue: Queue[int] = Queue()
+worker_process = Process(target=worker, args=(work_queue,))
+
+for i in range(10):
+    work_queue.put_nowait(i)
+work_queue.put_nowait(-1)
+
+worker_process.join()
+```
+
 The following will run the `process_based_workers.py` demo. _(the `Set-Item` command at the beginning adds the project
 root to the python path so that the following script can be run from this current directory)_
 ```shell
