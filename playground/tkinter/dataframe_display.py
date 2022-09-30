@@ -36,9 +36,12 @@ class DataFrameLinePlot(Frame):
         self._plot_axes.clear()
         column_plot_kwargs = column_plot_kwargs or {}
 
+        column_names = []
         for column in (columns or dataframe.columns):
             plot_kwargs = column_plot_kwargs[column] if column in column_plot_kwargs else {}
             self._plot_axes.plot(dataframe.index, dataframe[column], **plot_kwargs)
+            column_names.append(column)
+        self._plot_axes.legend(column_names)
         if x_labels_as_dates:
             self._plot_axes.figure.autofmt_xdate()
         self._figure_canvas.draw()
